@@ -1,0 +1,12 @@
+"""Prometheus metrics, served on /metrics and scraped by the platform team."""
+
+from prometheus_client import Counter, Histogram
+
+REQUESTS = Counter(
+    "http_requests_total",
+    "HTTP requests by route template and status.",
+    ["method", "route", "status"],
+)
+LATENCY = Histogram(
+    "http_request_duration_seconds", "HTTP request duration by route template.", ["method", "route"]
+)

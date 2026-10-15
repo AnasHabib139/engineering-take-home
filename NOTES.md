@@ -1,0 +1,45 @@
+# Notes
+
+Time spent:
+
+## Assumptions and open questions
+
+## Data model decisions
+
+## Requirements
+
+| ID | Applies? | Where it is met (code, test), or why not |
+| --- | --- | --- |
+| O.Purp_1 | | |
+| O.Cons_1 | | |
+| O.Cons_2 | | |
+| O.Cons_3 | | |
+| O.Auth_1 | | |
+| O.Pass_1 | | |
+| O.Log_1 | | |
+| O.Log_2 | | |
+| O.Log_3 | | |
+| O.Log_4 | | |
+| O.Mon_1 | | |
+| O.Err_1 | | |
+| O.Cryp_1 | | |
+| O.Del_1 | | |
+| O.Doc_1 | | |
+
+## Erasure (O.Del_1): how I would do it
+
+## Monitoring
+
+What you measure and why:
+
+Alerts (condition, threshold, and whether it wakes someone up or waits until the morning):
+
+Dashboard (what each graph answers; add a screenshot):
+
+## Screenshots
+
+## How I used AI
+
+Tools, workflow, and where you corrected the agent. Session transcripts are welcome but optional.
+
+## Next steps

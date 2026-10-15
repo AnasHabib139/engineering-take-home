@@ -1,0 +1,9 @@
+{
+  "name": "Symptom Diary",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "forwardPorts": [28000, 28001],
+  "postCreateCommand": "make setup"
+}

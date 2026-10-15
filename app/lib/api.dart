@@ -1,0 +1,57 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+
+import 'models.dart';
+
+/// Talks to the diary API. In the browser the API is served under /api on the
+/// same origin; elsewhere pass --dart-define=API_URL=http://localhost:28000/
+class ApiClient {
+  ApiClient({http.Client? client, this.token = 'patient-1'}) : _client = client ?? http.Client();
+
+  final http.Client _client;
+
+  /// Auth stub: the app always acts as patient 1.
+  final String token;
+
+  static final Uri baseUrl = const String.fromEnvironment('API_URL').isEmpty
+      ? Uri.base.resolve('/api/')
+      : Uri.parse(const String.fromEnvironment('API_URL'));
+
+  Map<String, String> get _headers => {
+    'Authorization': 'Bearer $token',
+    'Content-Type': 'application/json',
+  };
+
+  Future<List<DiaryEntry>> listEntries() async {
+    final response = await _client.get(baseUrl.resolve('entries'), headers: _headers);
+    final List<dynamic> json = _decode(response, 200);
+    return json.map((e) => DiaryEntry.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<DiaryEntry> createEntry(DiaryEntry entry) async {
+    final response = await _client.post(
+      baseUrl.resolve('entries'),
+      headers: _headers,
+      body: jsonEncode(entry.toJson()),
+    );
+    return DiaryEntry.fromJson(_decode(response, 201));
+  }
+
+  dynamic _decode(http.Response response, int expectedStatus) {
+    if (response.statusCode != expectedStatus) {
+      throw ApiException(response.statusCode, response.body);
+    }
+    return jsonDecode(utf8.decode(response.bodyBytes));
+  }
+}
+
+class ApiException implements Exception {
+  ApiException(this.statusCode, this.body);
+
+  final int statusCode;
+  final String body;
+
+  @override
+  String toString() => 'API error $statusCode: $body';
+}

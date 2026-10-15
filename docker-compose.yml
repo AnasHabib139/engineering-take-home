@@ -1,0 +1,84 @@
+name: diary
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: diary
+      POSTGRES_PASSWORD: diary
+      POSTGRES_DB: diary
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "diary", "-h", "127.0.0.1"]
+      interval: 2s
+      retries: 30
+
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://diary:diary@db:5432/diary
+    volumes:
+      - ./backend:/srv
+    ports:
+      - "28000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 2s
+      retries: 30
+
+  web:
+    image: nginx:1.29-alpine
+    volumes:
+      - ./app/build/web:/usr/share/nginx/html:ro
+      - ./app/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "28001:80"
+    depends_on:
+      - api
+
+  # Local monitoring: make observe. Production uses Datadog; the ideas are the same.
+  prometheus:
+    image: prom/prometheus:v3.10.0
+    profiles: [observe]
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "28002:9090"
+    depends_on:
+      - api
+
+  grafana:
+    image: grafana/grafana:12.4.0
+    profiles: [observe]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/api-overview.json
+    volumes:
+      - ./observability/grafana:/etc/grafana/provisioning:ro
+      - ./observability/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "28003:3000"
+    depends_on:
+      - prometheus
+
+  # Flutter SDK for building and testing the app; used by the Makefile only.
+  flutter:
+    image: ghcr.io/cirruslabs/flutter:3.41.7
+    profiles: [tools]
+    working_dir: /app
+    environment:
+      PUB_CACHE: /pub-cache
+    volumes:
+      - ./app:/app
+      - pub-cache:/pub-cache
+
+volumes:
+  db-data:
+  pub-cache:
