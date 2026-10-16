@@ -30,11 +30,7 @@ Time spent:
 
 ## Monitoring
 
-What you measure and why:
-
-Alerts (condition, threshold, and whether it wakes someone up or waits until the morning):
-
-Dashboard (what each graph answers; add a screenshot):
+What would we want to know, how do you measure it, and when should someone act?
 
 ## Screenshots
 

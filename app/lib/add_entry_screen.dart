@@ -42,6 +42,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
     );
     try {
       await widget.api.createEntry(entry);
+      widget.api.track('entry_created');
       if (mounted) Navigator.of(context).pop(true);
     } on Exception {
       if (!mounted) return;

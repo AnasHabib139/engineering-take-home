@@ -72,10 +72,12 @@ mobile agreed what to build. Then:
 1. Implement the endpoints in `API.md`.
 2. Build the patient's side in the app: share the diary with a doctor, stop sharing, and see who
    looked at it. A doctor UI is not needed.
-3. Make it observable: add metrics for the feature on `/metrics`, decide what should alert, and
-   build one Grafana dashboard. `make observe` starts Prometheus and Grafana with an example
-   dashboard; export yours as JSON into `observability/dashboards/`. We use Datadog in
-   production, but the thinking is the same.
+3. Help us know whether it works. Product wants to know if patients use sharing and keep
+   logging; the on-call engineer wants to know when doctors can't open a diary. Pick at least
+   one signal for each, build them in the backend or in the app (wherever you're comfortable),
+   and write down in `NOTES.md` what you'd watch and when someone should act. The app can send
+   events with `api.track()`, the backend has `/metrics`, and `make observe` gives you Grafana
+   if you'd like to build a dashboard (optional).
 
 Your solution has to meet our security and data protection requirements in `REQUIREMENTS.md`.
 Not all of them apply to this feature: tell us in `NOTES.md` which ones do, and why.
@@ -88,7 +90,8 @@ Erasure (O.Del_1) is a stretch goal: if you don't build it, describe in `NOTES.m
 - If something is unclear, write down your assumption and carry on.
 - Keep `make test` green and add tests for what you build. We also run our own tests against
   your API, so stick to `API.md`.
-- Add 2–3 screenshots of your sharing screens and one of your dashboard to `NOTES.md`.
+- Add 2–3 screenshots of your sharing screens to `NOTES.md` (and of your dashboard, if you
+  build one).
 - **Submit:** fork this repo, push your work to the fork, and send us the link.
 
 In the on-site interview you will continue from your own submission, on your own laptop.

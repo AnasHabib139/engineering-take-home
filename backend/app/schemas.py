@@ -28,6 +28,10 @@ class ClinicianOut(BaseModel):
     practice: str
 
 
+class TelemetryEvent(BaseModel):
+    event: str = Field(pattern=r"^[a-z][a-z0-9_]{0,63}$")
+
+
 class Me(BaseModel):
     role: str
     id: int

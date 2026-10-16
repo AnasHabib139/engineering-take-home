@@ -2,7 +2,7 @@
 
 | Document | KR-SEC-DIARY |
 | --- | --- |
-| Version | 1.4, binding |
+| Version | 1.5, binding |
 | Scope | Sharing of diary data with treating physicians |
 
 Diary entries are health data, a special category of personal data. This document is a
@@ -51,9 +51,7 @@ email addresses.
 
 ## 5 Monitoring (O.Mon)
 
-**O.Mon_1** Security-relevant events MUST be monitored, at least denied access attempts, consent
-changes and failures to record an access under O.Log_1. A failure to record an access MUST
-trigger an alert.
+**O.Mon_1** A failure to record an access under O.Log_1 MUST trigger an alert.
 
 ## 6 Error handling (O.Err)
 

@@ -38,6 +38,20 @@ class ApiClient {
     return DiaryEntry.fromJson(_decode(response, 201));
   }
 
+  /// Counts a product event such as `entry_created` (only the name is sent). Failures are ignored:
+  /// telemetry must never get in the patient's way.
+  Future<void> track(String event) async {
+    try {
+      await _client.post(
+        baseUrl.resolve('telemetry'),
+        headers: _headers,
+        body: jsonEncode({'event': event}),
+      );
+    } on Exception {
+      // Best effort only.
+    }
+  }
+
   dynamic _decode(http.Response response, int expectedStatus) {
     if (response.statusCode != expectedStatus) {
       throw ApiException(response.statusCode, response.body);

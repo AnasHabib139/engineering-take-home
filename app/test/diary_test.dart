@@ -19,6 +19,9 @@ MockClient fakeApi(List<Map<String, dynamic>> entries, {List<http.Request>? log}
       entries.insert(0, entry);
       return http.Response(jsonEncode(entry), 201);
     }
+    if (request.method == 'POST' && request.url.path.endsWith('/telemetry')) {
+      return http.Response('', 204);
+    }
     return http.Response('Not found', 404);
   });
 }
@@ -68,6 +71,10 @@ void main() {
     final sent = jsonDecode(requests.firstWhere((r) => r.method == 'POST').body);
     expect(sent['mood'], 5);
     expect(sent['symptoms'], ['headache', 'back pain']);
+    expect(
+      requests.where((r) => r.url.path.endsWith('/telemetry')).single.body,
+      contains('entry_created'),
+    );
     expect(find.text('Very good'), findsOneWidget);
     expect(find.text('Feeling great'), findsOneWidget);
   });

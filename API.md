@@ -47,3 +47,6 @@ newest first. Returns `200`:
 
 **`GET /metrics`**: metrics in the Prometheus text format, scraped by the platform team. No
 authentication; it is only reachable inside the cluster.
+
+**`POST /telemetry`**: counts a product event sent by the app, e.g. `{"event": "entry_created"}`.
+Event names are lowercase letters, digits and underscores, at most 64 characters. Returns `204`.

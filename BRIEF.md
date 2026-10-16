@@ -37,9 +37,11 @@ the local time as if it were UTC. They are marked `source = 'app-v1'`. We never 
 **Lukas (Platform, on call this week):** One more from me. Doctors will open this right before
 an appointment. If it breaks, the clinic calls support and support calls me, usually at 8 in the
 morning. I'd like to see it break before they do. Tell me what you'd measure, what should wake me
-up and what can wait until the morning, and give me one dashboard I can open when it's on fire.
+up and what can wait until the morning, and how I'd see what's going on when it's on fire.
 
 **Selin:** And no patient data in your monitoring either, please. Metrics end up in more places
 than the database does.
 
-**Mara:** Great, thanks all. Two hours, and tell us what you would do next.
+**Mara:** And from my side: in three months I have to say whether sharing was worth building.
+Do patients actually use it, and do the ones who share keep logging their diary? Great, thanks
+all. Two hours, and tell us what you would do next.
