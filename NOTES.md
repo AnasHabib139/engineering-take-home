@@ -231,6 +231,12 @@ flowchart TB
 
 ## Screenshots
 
+A demo video of the patient flow (about 1 minute):
+
+<video src="https://github.com/user-attachments/assets/0ee1666f-b838-48f3-9b7c-827b0b4d099f" controls width="720"></video>
+
+If the player does not load, [watch it on Google Drive](https://drive.google.com/file/d/1rYEoxd4FTtgjIjTbHZtCM2Xi_ckTJfAq/view?usp=sharing).
+
 The diary, with the new "Share with your doctor" button:
 
 ![The diary](docs/screenshots/1-diary.png)
