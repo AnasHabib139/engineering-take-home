@@ -1,15 +1,34 @@
 from collections.abc import Sequence
-from typing import Annotated
+from datetime import UTC, date, datetime
+from typing import Annotated, Any
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy import func, select
+from sqlalchemy import Row, func, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.auth import User, current_patient, current_user
+from app.auth import User, current_clinician, current_patient, current_user
 from app.db import get_db
-from app.metrics import APP_EVENTS, SHARES_CREATED, SHARES_REVOKED
-from app.models import Clinician, DiaryEntry, Share
-from app.schemas import ClinicianOut, EntryIn, EntryOut, Me, ShareIn, ShareOut, TelemetryEvent
+from app.metrics import (
+    ACCESS_LOG_FAILURES,
+    APP_EVENTS,
+    CLINICIAN_READS,
+    SHARES_CREATED,
+    SHARES_REVOKED,
+)
+from app.models import AccessLog, Clinician, DiaryEntry, Patient, Share
+from app.schemas import (
+    AccessLogOut,
+    ClinicianEntryOut,
+    ClinicianOut,
+    EntryIn,
+    EntryOut,
+    Me,
+    ShareIn,
+    ShareOut,
+    TelemetryEvent,
+)
 
 router = APIRouter()
 
@@ -19,6 +38,7 @@ CONSENT_VERSION = "2026-10-v1"
 Db = Annotated[Session, Depends(get_db)]
 AnyUser = Annotated[User, Depends(current_user)]
 PatientUser = Annotated[User, Depends(current_patient)]
+ClinicianUser = Annotated[User, Depends(current_clinician)]
 
 
 @router.get("/health")
@@ -84,6 +104,93 @@ def revoke_share(share_id: int, user: PatientUser, db: Db) -> Share:
         db.refresh(share)
         SHARES_REVOKED.inc()
     return share
+
+
+def patient_day(entry: DiaryEntry, tz: ZoneInfo) -> tuple[date, datetime]:
+    """The calendar day an entry belongs to in the patient's time zone, and its real instant.
+
+    App-v1 entries stored the patient's local wall-clock time as if it were UTC, so for those the
+    wall-clock time is reinterpreted in the patient's zone instead of converted.
+    """
+    instant = entry.recorded_at
+    if entry.source == "app-v1":
+        instant = instant.astimezone(UTC).replace(tzinfo=tz)
+    return instant.astimezone(tz).date(), instant.astimezone(UTC)
+
+
+@router.get("/clinician/patients/{patient_id}/entries", response_model=list[ClinicianEntryOut])
+def clinician_entries(patient_id: int, user: ClinicianUser, db: Db) -> list[dict[str, Any]]:
+    shares = db.scalars(
+        select(Share)
+        .where(
+            Share.patient_id == patient_id,
+            Share.clinician_id == user.id,
+            Share.revoked_at.is_(None),
+        )
+        .order_by(Share.id.desc())
+    ).all()
+    if not shares:
+        # Same answer for "no such patient" and "not shared with you": no patient enumeration.
+        CLINICIAN_READS.labels("denied").inc()
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Not found")
+
+    patient = db.get_one(Patient, patient_id)
+    tz = ZoneInfo(patient.timezone)
+    # ponytail: filters in Python; move the day filter into SQL if diaries grow to thousands of rows
+    entries = db.scalars(select(DiaryEntry).where(DiaryEntry.patient_id == patient_id)).all()
+    visible = []
+    for entry in entries:
+        day, instant = patient_day(entry, tz)
+        covering = [s for s in shares if s.from_date <= day <= s.to_date]
+        if covering:
+            show_note = any(s.include_notes for s in covering)
+            visible.append((instant, entry, show_note))
+    visible.sort(key=lambda item: item[0], reverse=True)
+
+    # Record the access before any data leaves: if this fails, the doctor gets nothing (O.Log_1).
+    try:
+        db.add(
+            AccessLog(
+                patient_id=patient_id,
+                share_id=shares[0].id,  # newest active share
+                clinician_id=user.id,
+                entry_ids=[entry.id for _, entry, _ in visible],
+            )
+        )
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        ACCESS_LOG_FAILURES.inc()
+        raise HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR, "Could not record access"
+        ) from None
+    CLINICIAN_READS.labels("ok").inc()
+    return [
+        {
+            "id": entry.id,
+            "recorded_at": instant,
+            "mood": entry.mood,
+            "symptoms": entry.symptoms,
+            "note": entry.note if show_note else None,
+        }
+        for instant, entry, show_note in visible
+    ]
+
+
+@router.get("/access-log", response_model=list[AccessLogOut])
+def access_log(user: PatientUser, db: Db) -> Sequence[Row[Any]]:
+    query = (
+        select(
+            AccessLog.clinician_id,
+            Clinician.name.label("clinician_name"),
+            AccessLog.accessed_at,
+            AccessLog.entry_ids,
+        )
+        .join(Clinician, Clinician.id == AccessLog.clinician_id)
+        .where(AccessLog.patient_id == user.id)
+        .order_by(AccessLog.id.desc())
+    )
+    return db.execute(query).all()
 
 
 @router.post("/telemetry", status_code=204)

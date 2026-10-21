@@ -10,6 +10,12 @@ REQUESTS = Counter(
 APP_EVENTS = Counter("app_events_total", "Product events sent by the app.", ["event"])
 SHARES_CREATED = Counter("shares_created_total", "Diary shares created by patients.")
 SHARES_REVOKED = Counter("shares_revoked_total", "Diary shares revoked by patients.")
+CLINICIAN_READS = Counter(
+    "clinician_reads_total", "Doctor reads of a shared diary by outcome.", ["outcome"]
+)
+ACCESS_LOG_FAILURES = Counter(
+    "access_log_write_failures_total", "Doctor reads that could not be recorded in the access log."
+)
 LATENCY = Histogram(
     "http_request_duration_seconds", "HTTP request duration by route template.", ["method", "route"]
 )
