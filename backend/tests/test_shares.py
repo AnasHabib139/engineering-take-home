@@ -1,4 +1,9 @@
 from fastapi.testclient import TestClient
+from sqlalchemy import select
+
+from app.api import CONSENT_VERSION
+from app.db import SessionLocal
+from app.models import Share
 
 PATIENT_1 = {"Authorization": "Bearer patient-1"}
 PATIENT_2 = {"Authorization": "Bearer patient-2"}
@@ -19,6 +24,13 @@ def test_patient_creates_share_without_notes_by_default(client: TestClient) -> N
         "revoked_at": None,
     }
     assert share["created_at"].endswith("Z")
+
+
+def test_share_stores_the_version_of_the_consent_text(client: TestClient) -> None:
+    client.post("/shares", json=SHARE, headers=PATIENT_1)
+
+    with SessionLocal() as db:
+        assert db.scalar(select(Share.consent_version)) == CONSENT_VERSION
 
 
 def test_patient_can_include_notes(client: TestClient) -> None:
