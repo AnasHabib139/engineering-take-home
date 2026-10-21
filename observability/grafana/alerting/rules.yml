@@ -1,0 +1,122 @@
+# Alert rules for diary sharing. Metrics hold counts only, never patient data.
+# severity=page wakes the on-call engineer, severity=morning waits for office hours.
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: diary-sharing
+    folder: Diary
+    interval: 1m
+    rules:
+      - uid: access-log-write-failed
+        title: A doctor read was not recorded in the access log
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              expr: increase(access_log_write_failures_total[5m])
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              settings: { mode: dropNN }
+              datasource: { type: __expr__, uid: __expr__ }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+              datasource: { type: __expr__, uid: __expr__ }
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        labels: { severity: page }
+        annotations:
+          summary: Doctors are reading diaries without a record, which breaks O.Log_1.
+          action: Check the API logs for "Unhandled" errors and the database. Doctors get no data while this happens, so reads fail closed.
+
+      - uid: doctor-reads-failing
+        title: Doctors cannot open diaries
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              expr: >-
+                (sum(rate(http_requests_total{route="/clinician/patients/{patient_id}/entries",status=~"5.."}[5m])) or vector(0))
+                / sum(rate(http_requests_total{route="/clinician/patients/{patient_id}/entries"}[5m]))
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              settings: { mode: dropNN }
+              datasource: { type: __expr__, uid: __expr__ }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0.1] }
+              datasource: { type: __expr__, uid: __expr__ }
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        labels: { severity: page }
+        annotations:
+          summary: More than 10% of doctor reads have failed for 5 minutes.
+          action: Open the "Diary sharing" dashboard, then the API logs. Clinics call support when this breaks.
+
+      - uid: doctor-reads-slow
+        title: Doctor reads are slow
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              expr: >-
+                histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{route="/clinician/patients/{patient_id}/entries"}[5m])))
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              settings: { mode: dropNN }
+              datasource: { type: __expr__, uid: __expr__ }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [2] }
+              datasource: { type: __expr__, uid: __expr__ }
+        noDataState: OK
+        execErrState: Error
+        for: 15m
+        labels: { severity: morning }
+        annotations:
+          summary: The 95th percentile of doctor reads has been above 2 seconds for 15 minutes.
+          action: Slow but working. Look at it in the morning.
