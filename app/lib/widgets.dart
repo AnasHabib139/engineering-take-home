@@ -51,6 +51,7 @@ class PlainCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       margin: const EdgeInsets.only(bottom: Space.s),
       padding: const EdgeInsets.all(Space.m),
       decoration: const BoxDecoration(color: AppColors.surface, borderRadius: Radii.card),
