@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Sequence
 from datetime import UTC, date, datetime
 from typing import Annotated, Any
@@ -31,6 +32,7 @@ from app.schemas import (
 )
 
 router = APIRouter()
+logger = logging.getLogger("diary.requests")
 
 # Version of the consent text shown in the app when a patient shares (O.Cons_3).
 CONSENT_VERSION = "2026-10-v1"
@@ -158,9 +160,11 @@ def clinician_entries(patient_id: int, user: ClinicianUser, db: Db) -> list[dict
             )
         )
         db.commit()
-    except SQLAlchemyError:
+    except SQLAlchemyError as error:
         db.rollback()
         ACCESS_LOG_FAILURES.inc()
+        # Only the type is logged: messages can carry query values, i.e. health data (O.Log_4).
+        logger.error("Access log write failed: %s", type(error).__name__)
         raise HTTPException(
             status.HTTP_500_INTERNAL_SERVER_ERROR, "Could not record access"
         ) from None

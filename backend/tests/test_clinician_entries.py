@@ -153,7 +153,7 @@ def test_access_log_cannot_be_changed(client: TestClient) -> None:
 
 
 def test_no_data_is_returned_when_the_access_cannot_be_recorded(
-    client: TestClient, monkeypatch: pytest.MonkeyPatch
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     def broken(**_: object) -> None:
         raise SQLAlchemyError("boom")
@@ -167,3 +167,5 @@ def test_no_data_is_returned_when_the_access_cannot_be_recorded(
     assert response.status_code == 500
     assert response.json() == {"detail": "Could not record access"}
     assert "access_log_write_failures_total 1.0" in client.get("/metrics").text
+    assert "Access log write failed: SQLAlchemyError" in caplog.text
+    assert "boom" not in caplog.text

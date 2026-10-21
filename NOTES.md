@@ -128,7 +128,7 @@ For `app-v1` entries the backend does not convert. It treats the stored clock ti
 | O.Pass_1 | No | The system has no passwords. |
 | O.Log_1 | Yes | Each successful doctor access saves an `access_log` row (doctor, patient, entry ids, time) before data is returned. Tests: `test_reads_are_recorded_and_shown_to_the_patient`, `test_a_read_with_no_entries_is_still_recorded`. |
 | O.Log_2 | Yes | `GET /access-log` and the "Who saw your diary" list in the app. Tests: the same test as above, and "shows who can see the diary and who looked" in `sharing_test.dart`. |
-| O.Log_3 | Partly | A trigger blocks UPDATE and DELETE on `access_log`. Test: `test_access_log_cannot_be_changed`. Not done: nothing deletes old rows, but the table owner could still drop the trigger. In production the application's database user should only have INSERT and SELECT, and backups need the same retention. |
+| O.Log_3 | Partly | A trigger blocks UPDATE and DELETE on `access_log`. Test: `test_access_log_cannot_be_changed`. Not done: nothing deletes old rows, but the table owner could still drop the trigger, and TRUNCATE is not blocked (the tests use it to reset the database). In production the application's database user should only have INSERT and SELECT, without the TRUNCATE privilege, and backups need the same retention. |
 | O.Log_4 | Yes | The request log writes only the method, route template, status and duration. It no longer writes the body or the real path. The Uvicorn access log is off (`--no-access-log` in `backend/Dockerfile`). Errors log only the error type, because messages can contain query values. Tests: `backend/tests/test_hardening.py`. |
 | O.Mon_1 | Yes | Counter `access_log_write_failures_total` and the Grafana alert "A doctor read was not recorded in the access log" (`observability/grafana/alerting/rules.yml`). Test of the counter: `test_no_data_is_returned_when_the_access_cannot_be_recorded`. The alert rule loads and runs without errors, but this exact alert was never triggered. The similar "Doctors cannot open diaries" alert was triggered by stopping the database, and it reached the pending state. |
 | O.Err_1 | Yes | Unexpected errors return `{"detail": "Internal server error"}` with no details (`backend/app/main.py`). Test: `test_unexpected_errors_reveal_nothing_and_are_still_counted`. Notes: a 422 repeats the input the caller sent, and `/docs` is public in this local setup and should be disabled in production. |
@@ -194,7 +194,7 @@ Denied requests (404) do not alert. They are normal, for example right after a p
 ### Incident response
 
 1. Open the "Diary sharing" dashboard in Grafana (`make observe`). The top row is for on-call.
-2. Run `make logs`. Each line has the form `METHOD /route -> status in N ms` and never contains a body. A line `Unhandled <ErrorType>` shows what failed.
+2. Run `make logs`. Each line has the form `METHOD /route -> status in N ms` and never contains a body. A line `Access log write failed: <ErrorType>` or `Unhandled <ErrorType>` shows what failed.
 3. Check that the database is running.
 
 ### Limitations
@@ -203,6 +203,7 @@ Denied requests (404) do not alert. They are normal, for example right after a p
 - Only requests that reach the backend are measured. If the clinician portal or the network is down, there are no failures to see. A synthetic check (a job that opens a test diary every minute) would cover this.
 - With very few patients, the counts for "sharers" and "others" could identify one person. In production, a group's numbers should be hidden when it has fewer than N patients (for example N = 10).
 - The cohort counts run a small database query at every scrape.
+- `/telemetry` accepts any event name that matches the allowed pattern, and every new name becomes a new metric series. This comes from the starter code, and `API.md` allows it. Counting only a limited number of distinct names (the rest as `other`) would bound it.
 - Prometheus ignores the first value of a counter that appears already above zero. The known counters start at 0 to avoid this.
 - The alert thresholds (10%, 2 s) are first estimates and should be tuned with real traffic.
 

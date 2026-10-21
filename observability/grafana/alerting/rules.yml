@@ -42,7 +42,7 @@ groups:
         labels: { severity: page }
         annotations:
           summary: Doctors are reading diaries without a record, which breaks O.Log_1.
-          action: Check the API logs for "Unhandled" errors and the database. Doctors get no data while this happens, so reads fail closed.
+          action: Check the API logs for "Access log write failed" and the database. Doctors get no data while this happens, so reads fail closed.
 
       - uid: doctor-reads-failing
         title: Doctors cannot open diaries
