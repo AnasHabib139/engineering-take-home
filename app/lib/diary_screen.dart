@@ -4,6 +4,7 @@ import 'add_entry_screen.dart';
 import 'api.dart';
 import 'format.dart';
 import 'models.dart';
+import 'sharing_screen.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -32,6 +33,13 @@ class _DiaryScreenState extends State<DiaryScreen> {
     if (saved == true) _reload();
   }
 
+  void _openSharing() {
+    widget.api.track('sharing_opened');
+    Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => SharingScreen(api: widget.api)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final today = dayOf(DateTime.now());
@@ -52,11 +60,15 @@ class _DiaryScreenState extends State<DiaryScreen> {
                 padding: const EdgeInsets.fromLTRB(Space.m, Space.l, Space.m, 96),
                 children: [
                   ContentColumn(
-                    child: _Header(today: today, entries: entries ?? const []),
+                    child: _Header(
+                      today: today,
+                      entries: entries ?? const [],
+                      onShare: _openSharing,
+                    ),
                   ),
                   const SizedBox(height: Space.l),
                   if (snapshot.hasError)
-                    _Message(
+                    Message(
                       title: "Couldn't load your diary",
                       body: 'Check your connection and try again.',
                       action: TextButton(onPressed: _reload, child: const Text('Try again')),
@@ -64,7 +76,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                   else if (entries == null)
                     const Center(child: CircularProgressIndicator())
                   else if (entries.isEmpty)
-                    const _Message(
+                    const Message(
                       title: 'Your diary is empty',
                       body: 'Note how you feel today. It takes less than a minute.',
                     )
@@ -97,10 +109,11 @@ List<_Day> _groupByDay(List<DiaryEntry> entries) {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.today, required this.entries});
+  const _Header({required this.today, required this.entries, required this.onShare});
 
   final DateTime today;
   final List<DiaryEntry> entries;
+  final VoidCallback onShare;
 
   @override
   Widget build(BuildContext context) {
@@ -113,6 +126,12 @@ class _Header extends StatelessWidget {
         Text(formatLongDate(today), style: text.bodyMedium),
         const SizedBox(height: Space.l),
         _MoodStrip(today: today, entries: entries),
+        const SizedBox(height: Space.s),
+        TextButton.icon(
+          onPressed: onShare,
+          icon: const Icon(Icons.ios_share),
+          label: const Text('Share with your doctor'),
+        ),
       ],
     );
   }
@@ -225,32 +244,6 @@ class EntryCard extends StatelessWidget {
                 ),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Message extends StatelessWidget {
-  const _Message({required this.title, required this.body, this.action});
-
-  final String title;
-  final String body;
-  final Widget? action;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return ContentColumn(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: Space.xl),
-        child: Column(
-          children: [
-            Text(title, style: text.titleMedium),
-            const SizedBox(height: Space.xs),
-            Text(body, style: text.bodyMedium, textAlign: TextAlign.center),
-            ?action,
           ],
         ),
       ),

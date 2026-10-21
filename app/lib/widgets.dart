@@ -41,3 +41,47 @@ class SymptomTag extends StatelessWidget {
 }
 
 String sentenceCase(String text) => text.isEmpty ? text : text[0].toUpperCase() + text.substring(1);
+
+/// A white card for a person or a record, without the mood rail (see DESIGN.md, Components).
+class PlainCard extends StatelessWidget {
+  const PlainCard({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: Space.s),
+      padding: const EdgeInsets.all(Space.m),
+      decoration: const BoxDecoration(color: AppColors.surface, borderRadius: Radii.card),
+      child: child,
+    );
+  }
+}
+
+/// A centred title and explanation for an empty or failed screen.
+class Message extends StatelessWidget {
+  const Message({super.key, required this.title, required this.body, this.action});
+
+  final String title;
+  final String body;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return ContentColumn(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: Space.xl),
+        child: Column(
+          children: [
+            Text(title, style: text.titleMedium),
+            const SizedBox(height: Space.xs),
+            Text(body, style: text.bodyMedium, textAlign: TextAlign.center),
+            ?action,
+          ],
+        ),
+      ),
+    );
+  }
+}

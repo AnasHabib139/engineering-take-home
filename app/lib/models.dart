@@ -28,3 +28,68 @@ class DiaryEntry {
     'note': note,
   };
 }
+
+class Clinician {
+  const Clinician({required this.id, required this.name, required this.practice});
+
+  final int id;
+  final String name;
+  final String practice;
+
+  factory Clinician.fromJson(Map<String, dynamic> json) => Clinician(
+    id: json['id'] as int,
+    name: json['name'] as String,
+    practice: json['practice'] as String,
+  );
+}
+
+/// A patient's permission for one doctor to read the diary for a period.
+class Share {
+  const Share({
+    required this.id,
+    required this.clinicianId,
+    required this.fromDate,
+    required this.toDate,
+    required this.includeNotes,
+    this.revokedAt,
+  });
+
+  final int id;
+  final int clinicianId;
+
+  /// Calendar days in the patient's own time zone, both inclusive.
+  final DateTime fromDate;
+  final DateTime toDate;
+  final bool includeNotes;
+  final DateTime? revokedAt;
+
+  bool get active => revokedAt == null;
+
+  factory Share.fromJson(Map<String, dynamic> json) => Share(
+    id: json['id'] as int,
+    clinicianId: json['clinician_id'] as int,
+    fromDate: DateTime.parse(json['from_date'] as String),
+    toDate: DateTime.parse(json['to_date'] as String),
+    includeNotes: json['include_notes'] as bool,
+    revokedAt: json['revoked_at'] == null ? null : DateTime.parse(json['revoked_at'] as String),
+  );
+}
+
+/// One time a doctor read the patient's diary.
+class AccessEvent {
+  const AccessEvent({
+    required this.clinicianName,
+    required this.accessedAt,
+    required this.entryCount,
+  });
+
+  final String clinicianName;
+  final DateTime accessedAt;
+  final int entryCount;
+
+  factory AccessEvent.fromJson(Map<String, dynamic> json) => AccessEvent(
+    clinicianName: json['clinician_name'] as String,
+    accessedAt: DateTime.parse(json['accessed_at'] as String),
+    entryCount: (json['entry_ids'] as List).length,
+  );
+}
